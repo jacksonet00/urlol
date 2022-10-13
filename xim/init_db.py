@@ -1,11 +1,14 @@
 from app import db, app
 from models import User, Alias, Shortcut
-from utils import get_hashed_password
 from models import SearchableWebsite
-import uuid
+from bcrypt import hashpw, gensalt
 
 with app.app_context():
-    hashed_password = get_hashed_password('misamisa')
+    Shortcut.query.delete()
+    Alias.query.delete()
+    User.query.delete()
+
+    hashed_password = hashpw('misamisa'.encode('utf8'), gensalt())
     default_user = User(email='light@gmail.com', password=hashed_password)
 
     # default_alias = Alias(

@@ -1,72 +1,148 @@
-from app import app, db
+from app import app, db, login_manager
 from flask import request, redirect
 from models import User
 import json
-from utils import get_hashed_password
+from flask_login import login_user, login_required, logout_user
+from bcrypt import checkpw, hashpw, gensalt
+import re
 
 
-@app.route('/user/', methods=['GET', 'POST'])
-@app.route('/user/<id>', methods=['GET'])
-def user(id=None):
-    if request.method == 'GET':
-        if id:
-            user = User.query.get(id)
-            return json.dumps(user.as_dict())
-        email = request.args.get('email')
-        if email:
-            user = User.query.filter_by(email=email).first()
-            return json.dumps(user.as_dict())
-    if request.method == 'POST':
-        email = request.json['email']
-        password = request.json['password']
+@app.route('/signup', methods=['POST'])
+def sign_up():
+    _response = {
+        'errors': [],
+        'data': None
+    }
 
-        _response = {
-            'errors': [],
-            'data': None,
-        }
-
-        if not email or not password:
-            if not email:
-                _response['errors'].append({
-                    'message': 'Email is required.'
-                })
-            if not password:
-                _response['errors'].append({
-                    'message': 'Password is required.'
-                })
-            return json.dumps(_response)
-
-        hashed_password = get_hashed_password(password)
-
-        new_user = User(email=email, password=hashed_password)
-
-        db.session.add(new_user)
-        db.session.commit()
-
-        _response['data'] = new_user.as_dict()
-
+    if request.method != 'POST':
+        _response['errors'].append({
+            'message': 'Invalid HTTP method.'
+        })
         return json.dumps(_response)
 
+    email = request.json['email']
+    password = request.json['password']
 
-@app.route('/search')
-def bunnylol():
-    query = request.args.get('q')
+    if User.query.filter_by(email=email).first() != None:
+        _response['errors'].append({
+            'message': 'Email already in use.'
+        })
+        return json.dumps(_response)
 
-    # github search
-    if query[:3] == 'gh ':
-        return redirect(f'https://github.com/search?q={query[3:]}')
+    email_regex = re.compile('^.+@[a-zA-Z0-9]{2,}\\.[a-zA-Z]{2,}$')
+    if not email_regex.match(email):
+        _response['errors'].append({
+            'message': 'Invalid email.'
+        })
 
-    # wikipedia search
-    if query[:2] == 'w ':
-        return redirect(f'https://en.wikipedia.org/w/index.php?search={query[2:]}')
+    password_regex = re.compile('^[a-zA-Z0-9!?!$*.]{5,50}$')
+    if not password_regex.match(password):
+        _response['errors'].append({
+            'message': 'Invalid password.'
+        })
 
-    # stack overflow search
-    if query[:3] == 'so ':
-        return redirect(f'https://stackoverflow.com/search?q={query[3:]}')
+    if _response['errors']:
+        return json.dumps(_response)
 
-    # amazon search
-    if query[:2] == 'a ':
-        return redirect(f'https://www.amazon.com/s?k={query[2:]}')
+    hashed_password = hashpw(password.encode('utf8'), gensalt()).decode('utf8')
 
-    # fallback to google search by default
-    return redirect(f'https://google.com/search?q={query}')
+    new_user = User(email=email, password=hashed_password)
+
+    db.session.add(new_user)
+    db.session.commit()
+
+    login_user(new_user)
+
+    _response['data'] = new_user.as_dict()
+    return json.dumps(_response)
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    _response = {
+        'errors': [],
+        'data': []
+    }
+
+    if request.method != 'POST':
+        _response['errors'].append({
+            'message': 'Invalid HTTP method.'
+        })
+        return json.dumps(_response)
+
+    email = request.json['email']
+    password = request.json['password']
+
+    if not email:
+        _response['errors'].append({
+            'message': 'Email required.'
+        })
+
+    if not password:
+        _response['errors'].append({
+            'message': 'Password required.'
+        })
+
+    if _response['errors']:
+        return json.dumps(_response)
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        _response['errors'].append({
+            'message': f'No user associated {email}.'
+        })
+        return json.dumps(_response)
+
+    if not checkpw(password.encode('utf8'), user.password.encode('utf8')):
+        _response['errors'].append({
+            'message': f'Incorrect password for {email}'
+        })
+
+    login_user(user)
+
+    _response['data'] = user.as_dict()
+    return json.dumps(_response)
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return 'Logged out.'
+
+
+@login_manager.user_loader
+def load_user(id):
+    user = User.query.get(id)
+    return user
+
+
+@app.route('/user/')
+@app.route('/user/<id>')
+def user(id=None):
+    _response = {
+        'errors': [],
+        'data': []
+    }
+
+    if request.method != 'GET':
+        _response['errors'].append({
+            'message': 'Invalid HTTP method.'
+        })
+        return json.dumps(_response)
+
+    email = request.args.get('email')
+
+    if id:
+        user = User.query.get(id)
+    elif email:
+        user = User.query.filter_by(email=email).first()
+
+    if not user:
+        def lookup_method(): return 'user id' if id else 'email'
+        _response['errors'].append({
+            'message': f'Invalid {lookup_method()}.'
+        })
+        return json.dumps(_response)
+
+    return json.dumps(user.as_dict())

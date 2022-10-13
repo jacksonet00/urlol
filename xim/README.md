@@ -4,7 +4,9 @@
 
 - **GET /user/<id>** fetch user by id
 - **GET /user?email=<email>** fetch user by email
-- **POST /user** create a new user
+- **POST /signup body={ email, password }** create new user and login
+- **POST /login body={ email, password }** login
+- **GET /logout** logout
 
 ### start dev
 
