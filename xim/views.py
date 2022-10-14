@@ -13,7 +13,7 @@ def sign_up():
 
     _response = {
         'errors': [],
-        'data': None
+        'data': []
     }
 
     if request.method != 'POST':
@@ -137,9 +137,18 @@ def login():
 @app.route('/logout', methods=['GET'])
 @login_required
 def logout():
+    response = Response()
+
     logout_user()
+
     response.set_cookie('urlol-uid', "")
-    return 'Logged out.'
+    response.set_data(json.dumps({
+        'errors': [],
+        'data': {
+            'success': True
+        }
+    }))
+    return response
 
 
 @login_manager.user_loader
@@ -151,6 +160,8 @@ def load_user(id):
 @app.route('/user/', methods=['GET'])
 @app.route('/user/<id>', methods=['GET'])
 def user(id=None):
+    response = Response()
+
     _response = {
         'errors': [],
         'data': []
@@ -160,7 +171,8 @@ def user(id=None):
         _response['errors'].append({
             'message': 'Invalid HTTP method.'
         })
-        return json.dumps(_response)
+        response.set_data(json.dumps(_response))
+        return response
 
     email = request.args.get('email')
 
@@ -174,18 +186,23 @@ def user(id=None):
         _response['errors'].append({
             'message': f'Invalid {lookup_method()}.'
         })
-        return json.dumps(_response)
+        response.set_data(json.dumps(_response))
+        return response
 
-    return json.dumps(user.as_dict())
+    _response['data'] = user.as_dict()
+    response.set_data(json.dumps(_response))
+    return response
 
 
 @app.route('/alias', methods=['GET', 'POST'])
 @app.route('/alias/<id>', methods=['GET'])
 @login_required
 def alias(id=None):
+    response = Response()
+
     _response = {
         'errors': [],
-        'data': None
+        'data': []
     }
 
     if request.method == 'POST':
@@ -205,7 +222,8 @@ def alias(id=None):
             })
 
         if _response['errors']:
-            return json.dumps(_response)
+            response.set_data(json.dumps(_response))
+        return response
 
         user_id = request.json['user_id']
         name = request.json['name']
@@ -215,7 +233,8 @@ def alias(id=None):
             _response['errors'].append({
                 'message': 'The provided `user_id` does not match the id of the authenticated user.'
             })
-            return json.dumps(_response)
+            response.set_data(json.dumps(_response))
+        return response
 
         new_alias = Alias(name=name, url=url, user_id=user_id)
 
@@ -223,7 +242,8 @@ def alias(id=None):
         db.session.commit()
 
         _response['data'] = new_alias.as_dict()
-        return json.dumps(_response)
+        response.set_data(json.dumps(_response))
+        return response
 
     if request.method == 'GET':
         if id:
@@ -233,37 +253,44 @@ def alias(id=None):
                 _response['errors'].append({
                     'message': 'Invalid alias id.'
                 })
-                return json.dumps(_response)
+                response.set_data(json.dumps(_response))
+                return response
 
             _response['data'] = alias.as_dict()
-            return json.dumps(_response)
+            response.set_data(json.dumps(_response))
+            return response
 
         if 'user_id' not in request.json:
             _response['errors'].append({
                 'message': 'Invalid HTTP request. Provide body: { user_id } for Alias[] or `/alias/<alias_id>` for Alias.'
             })
-            return json.dumps(_response)
+            response.set_data(json.dumps(_response))
+        return response
 
         user_id = request.json['user_id']
 
         aliases = Alias.query.filter_by(user_id=user_id)
 
         _response['data'] = [alias.as_dict() for alias in aliases]
-        return json.dumps(_response)
+        response.set_data(json.dumps(_response))
+        return response
 
     _response['errors'].append({
         'message': 'Invalid HTTP method.'
     })
-    return json.dumps(_response)
+    response.set_data(json.dumps(_response))
+    return response
 
 
 @app.route('/shortcut', methods=['GET', 'POST'])
 @app.route('/shortcut/<id>', methods=['GET'])
 @login_required
 def shortcut(id=None):
+    response = Response()
+
     _response = {
         'errors': [],
-        'data': None
+        'data': []
     }
 
     if request.method == 'POST':
@@ -283,7 +310,8 @@ def shortcut(id=None):
             })
 
         if _response['errors']:
-            return json.dumps(_response)
+            response.set_data(json.dumps(_response))
+        return response
 
         user_id = request.json['user_id']
         prefix = request.json['prefix']
@@ -293,7 +321,8 @@ def shortcut(id=None):
             _response['errors'].append({
                 'message': 'The provided `user_id` does not match the id of the authenticated user.'
             })
-            return json.dumps(_response)
+            response.set_data(json.dumps(_response))
+        return response
 
         new_shortcut = Shortcut(
             prefix=prefix, website=website, user_id=user_id)
@@ -302,7 +331,8 @@ def shortcut(id=None):
         db.session.commit()
 
         _response['data'] = new_shortcut.as_dict()
-        return json.dumps(_response)
+        response.set_data(json.dumps(_response))
+        return response
 
     if request.method == 'GET':
         if id:
@@ -312,28 +342,33 @@ def shortcut(id=None):
                 _response['errors'].append({
                     'message': 'Invalid shortcut id.'
                 })
-                return json.dumps(_response)
+                response.set_data(json.dumps(_response))
+                return response
 
             _response['data'] = shortcut.as_dict()
-            return json.dumps(_response)
+            response.set_data(json.dumps(_response))
+            return response
 
         if 'user_id' not in request.json:
             _response['errors'].append({
                 'message': 'Invalid HTTP request. Provide body: { user_id } for shortcut[] or `/shortcut/<shortcut_id>` for shortcut.'
             })
-            return json.dumps(_response)
+            response.set_data(json.dumps(_response))
+            return response
 
         user_id = request.json['user_id']
 
         shortcuts = Shortcut.query.filter_by(user_id=user_id)
 
         _response['data'] = [shortcut.as_dict() for shortcut in shortcuts]
-        return json.dumps(_response)
+        response.set_data(json.dumps(_response))
+        return response
 
     _response['errors'].append({
         'message': 'Invalid HTTP method.'
     })
-    return json.dumps(_response)
+    response.set_data(json.dumps(_response))
+    return response
 
 
 # TEST
