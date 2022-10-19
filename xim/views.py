@@ -4,6 +4,7 @@ from models import User, Alias, Shortcut
 import json
 from flask_login import login_user, login_required, logout_user
 from bcrypt import checkpw, hashpw, gensalt
+from datetime import timedelta
 import re
 
 
@@ -69,9 +70,10 @@ def sign_up():
 
     db.session.add(new_user)
     db.session.commit()
+    from datetime import timedelta
 
-    login_user(new_user)
-    response.set_cookie('urlol-uid', new_user.id)
+    login_user(new_user, remember=True, duration=timedelta(days=365))
+    # response.set_cookie('urlol-uid', new_user.id)
 
     _response['data'] = new_user.as_dict()
     response.set_data(json.dumps(_response))
@@ -126,8 +128,8 @@ def login():
         response.set_data(json.dumps(_response))
         return response
 
-    login_user(user)
-    response.set_cookie('urlol-uid', user.id)
+    login_user(user, remember=True, duration=timedelta(days=365))
+    # response.set_cookie('urlol-uid', user.id)
 
     _response['data'] = user.as_dict()
     response.set_data(json.dumps(_response))
@@ -141,7 +143,7 @@ def logout():
 
     logout_user()
 
-    response.set_cookie('urlol-uid', "")
+    # response.set_cookie('urlol-uid', "")
     response.set_data(json.dumps({
         'errors': [],
         'data': {
@@ -223,18 +225,18 @@ def alias(id=None):
 
         if _response['errors']:
             response.set_data(json.dumps(_response))
-        return response
+            return response
 
         user_id = request.json['user_id']
         name = request.json['name']
         url = request.json['url']
 
-        if user_id != request.cookies.get('urlol-uid'):
-            _response['errors'].append({
-                'message': 'The provided `user_id` does not match the id of the authenticated user.'
-            })
-            response.set_data(json.dumps(_response))
-        return response
+        # if user_id != request.cookies.get('urlol-uid'):
+        # _response['errors'].append({
+        #     'message': 'The provided `user_id` does not match the id of the authenticated user.'
+        # })
+        # response.set_data(json.dumps(_response))
+        # return response
 
         new_alias = Alias(name=name, url=url, user_id=user_id)
 
@@ -265,7 +267,7 @@ def alias(id=None):
                 'message': 'Invalid HTTP request. Provide body: { user_id } for Alias[] or `/alias/<alias_id>` for Alias.'
             })
             response.set_data(json.dumps(_response))
-        return response
+            return response
 
         user_id = request.json['user_id']
 
@@ -317,12 +319,12 @@ def shortcut(id=None):
         prefix = request.json['prefix']
         website = request.json['website']
 
-        if user_id != request.cookies.get('urlol-uid'):
-            _response['errors'].append({
-                'message': 'The provided `user_id` does not match the id of the authenticated user.'
-            })
-            response.set_data(json.dumps(_response))
-        return response
+        # if user_id != request.cookies.get('urlol-uid'):
+        #     _response['errors'].append({
+        #         'message': 'The provided `user_id` does not match the id of the authenticated user.'
+        #     })
+        #     response.set_data(json.dumps(_response))
+        # return response
 
         new_shortcut = Shortcut(
             prefix=prefix, website=website, user_id=user_id)
@@ -369,6 +371,64 @@ def shortcut(id=None):
     })
     response.set_data(json.dumps(_response))
     return response
+
+
+@app.route('/search', methods=['GET'])
+@login_required
+def search():
+    response = Response()
+    _response = {
+        'errors': [],
+        'data': []
+    }
+
+    if request.method != 'GET':
+        _response['errors'].append({
+            'message': 'Invalid HTTP method.'
+        })
+        response.set_data(json.dumps(_response))
+        return response
+
+    if 'q' not in request.args:
+        _response['errors'].append({
+            'message': 'Query string must be provided in `/search?q={query}&uid={user_id}`.'
+        })
+
+    if 'uid' not in request.args:
+        _response['errors'].append({
+            'message': 'User id must be provided in `/search?q={query}&uid={user_id}`.'
+        })
+
+    if _response['errors']:
+        response.set_data(json.dumps(_response))
+        return response
+
+    query = request.args.get('q')
+
+    user_id = request.args.get('uid')
+    user = User.query.get(user_id)
+
+    if not user:
+        _response['errors'].append({
+            f'message': 'Unable to fetch user with user_id={user_id} from the database.'
+        })
+        response.set_data(json.dumps(_response))
+        return response
+
+    if not user.is_authenticated:
+        _response['errors'].append({
+            f'message': 'User not authenticated, please login.'
+        })
+        response.set_data(json.dumps(_response))
+        return response
+
+    aliases = {
+        alias.name: alias.url for alias in user.aliases} if user.aliases else {}
+
+    if query in aliases:
+        return redirect(aliases[query])
+
+    return redirect(f'https://google.com/search?q={query}')
 
 
 # TEST

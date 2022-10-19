@@ -4,6 +4,8 @@ from models import SearchableWebsite
 from bcrypt import hashpw, gensalt
 
 with app.app_context():
+    db.create_all()
+
     Shortcut.query.delete()
     Alias.query.delete()
     User.query.delete()

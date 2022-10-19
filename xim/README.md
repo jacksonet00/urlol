@@ -12,7 +12,8 @@
 - **POST /alias body={ user_id, name, url }** create alias
 - **GET /shortcut body={ user_id } cookie={ urlol-uid }** fetch list of user's aliases
 - **GET /shortcut/<id>** fetch shortcut by id
-- **POST /shortcut body={ user_id, prefix, website }** create shortcut 
+- **POST /shortcut body={ user_id, prefix, website }** create shortcut
+- **GET /search?q={query}** make search request
 
 ### run in development mode
 
