@@ -1,11 +1,16 @@
 from app import app, db, login_manager
-from flask import request, redirect, Response
+from flask import request, redirect, Response, render_template
 from models import User, Alias, Shortcut
 import json
 from flask_login import login_user, login_required, logout_user
 from bcrypt import checkpw, hashpw, gensalt
 from datetime import timedelta
 import re
+
+
+@app.route('/')
+def index():
+    return render_template('hello.html')
 
 
 @app.route('/signup', methods=['POST'])

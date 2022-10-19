@@ -1,1 +1,5 @@
+/venv
+secret.*
+start.sh
+__pycache__
 .vscode
