@@ -1,4 +1,4 @@
-from app import app, db
+from .core import db
 
 import uuid
 from enum import Enum
@@ -62,9 +62,3 @@ class Shortcut(db.Model):
 
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
-
-
-if __name__ == '__main__':
-    with app.app_context():
-        db.drop_all()
-        db.create_all()

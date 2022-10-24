@@ -11,9 +11,7 @@ by Jackson Taylor
 
 4. `start venv` (if deactivated)
 
-5. `python3 init_db.py`
-
-6. `python3 app.py`'
+5. `flask --app web --debug run`
 
 GET '/' -- Dashboard
 GET '/search?q={query}' -- Search

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block header %}
+<h1>Dashboard</h1>
+{% endblock %}
+
+{% block content %}
+{% if not g.user %}
+<p>Please <a href="{{ url_for('auth.login') }}">login</a></p>
+{% endif %}
+{% if g.user and g.user.aliases %}
+<h3>create alias</h3>
+<form action="/alias" method="post">
+    <label for="name">alias name</label>
+    <input type="text" name="name" required />
+    <label for="url">url</label>
+    <input type="text" name="url" required />
+    <button type="submit">create</button>
+</form>
+<br/>
+    {% for alias in g.user.aliases %}
+    <form action="/alias/update" method="post">
+        <input type="text" name="id" value="{{ alias.id }}" hidden required />
+        <input type="text" name="name" value="{{ alias.name }}" required />
+        <input type="text" name="url" value="{{ alias.url }}" required />
+        <button type="submit">update</button>
+    </form>
+    <br/>
+    <form action="/alias/delete" method="post">
+        <input type="text" name="id" value="{{ alias.id }}" hidden required />
+        <button type="submit">delete</button>
+    </form>
+    <br/>
+    {% endfor %}
+{% endif %}
+{% endblock %}
