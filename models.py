@@ -1,7 +1,9 @@
 from app import app, db
-from sqlalchemy.dialects.postgresql import UUID
+
 import uuid
 from enum import Enum
+
+from sqlalchemy.dialects.postgresql import UUID
 from flask_login import UserMixin
 
 
@@ -22,7 +24,7 @@ class User(UserMixin, db.Model):
         return f'<User: {self.id}>'
 
     def as_dict(self):
-       return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
 class Alias(db.Model):
@@ -37,7 +39,7 @@ class Alias(db.Model):
         return f'<Alias: {self.id}>'
 
     def as_dict(self):
-       return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
 class SearchableWebsite(str, Enum):
@@ -59,7 +61,7 @@ class Shortcut(db.Model):
         return f'<Shortcut: {self.id}>'
 
     def as_dict(self):
-       return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
 if __name__ == '__main__':

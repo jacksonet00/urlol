@@ -1,20 +1,14 @@
 from app import app, db, login_manager
-from flask import request, redirect, Response, render_template, url_for
 from models import User, Alias, Shortcut
+
 import json
-# TODO: factor out login_required
-from flask_login import login_user, login_required, logout_user
-from bcrypt import checkpw, hashpw, gensalt
-from datetime import timedelta
 import re
-from secret import secret_key
+from datetime import timedelta
+
+from flask import request, redirect, render_template, url_for
 from flask.sessions import SecureCookieSessionInterface
-
-
-@login_manager.user_loader
-def load_user(id):
-    user = User.query.get(id)
-    return user
+from flask_login import login_user, logout_user
+from bcrypt import checkpw, hashpw, gensalt
 
 
 @app.route('/', methods=['GET'])
@@ -108,7 +102,6 @@ def login():
             })
 
         if errors:
-            response.set_data(json.dumps(_response))
             return render_template('error.html', errors=errors)
 
         email = request.form['email'].lower()
@@ -134,19 +127,57 @@ def login():
 
 
 @app.route('/logout', methods=['POST'])
-@login_required
 def logout():
     if request.method == 'POST':
-        logout_user()
+        session_interface = SecureCookieSessionInterface()
+        signing_serializer = session_interface.get_signing_serializer(app)
 
+        if 'session' in request.cookies:
+            session_cookie = request.cookies.get('session')
+            session_cookie_data = signing_serializer.loads(session_cookie)
+
+            if '_user_id' in session_cookie_data:
+                user_id = session_cookie_data['_user_id']
+                user = User.query.get(user_id)
+
+                if user:
+                    logout_user()
+                    return redirect(url_for('index'))
         return redirect(url_for('index'))
 
 
 @app.route('/alias', methods=['POST', 'GET'])
-@login_required
 def alias(id=None):
     if request.method == 'POST':
         errors = []
+
+        session_interface = SecureCookieSessionInterface()
+        signing_serializer = session_interface.get_signing_serializer(app)
+
+        if 'session' not in request.cookies:
+            errors.append({
+                'message': 'Authenticated session cookie not found.'
+            })
+            return render_template('error.html', errors=errors)
+
+        session_cookie = request.cookies.get('session')
+        session_cookie_data = signing_serializer.loads(session_cookie)
+
+        if '_user_id' not in session_cookie_data:
+            errors.append({
+                'message': 'User id not stored in session cookie.'
+            })
+            return render_template('error.html', errors=errors)
+
+        user_id = session_cookie_data['_user_id']
+        user = User.query.get(user_id)
+
+        if not user:
+            errors.append({
+                'message': f'User with id={user_id} not found.'
+            })
+            return render_template('error.html', errors=errors)
+
         if 'id' in request.form:  # DELETE by ID
             alias_id = request.form['id']
             alias = Alias.query.get(alias_id)
@@ -237,7 +268,7 @@ def search():
 
         if 'session' not in request.cookies:
             errors.append({
-                'message': 'User not authenticated. Session cookie must be present.'
+                'message': 'Authenticated session cookie not found.'
             })
 
         if errors:
@@ -256,13 +287,13 @@ def search():
 
         if not user:
             errors.append({
-                f'message': 'Unable to fetch user with user_id={user_id} from the database.'
+                'message': f'User with id={user_id} not found.'
             })
             return render_template('error.html', errors=errors)
 
         if not user.is_authenticated:
             errors.append({
-                f'message': 'User not authenticated, please login.'
+                'message': 'User not authenticated.'
             })
             return render_template('error.html', errors=errors)
 
