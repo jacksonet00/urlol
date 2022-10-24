@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<a href="{{ url_for('index') }}">go home</a>
+
+<h3>errors</h3>
+{% for error in errors %}
+<p>{{ error.message }}</p>
+{% endfor %}
+
+{% endblock %}

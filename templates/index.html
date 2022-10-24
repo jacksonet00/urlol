@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% if not user or not user.is_authenticated %}
+<h3>login form</h3>
+<form action="/login" method="post">
+    <input type="text" placeholder="email" name="email" />
+    <input type="text" placeholder="password" name="password" />
+    <button type="submit">login</button>
+</form>
+<h3>signup form</h3>
+<form action="/signup" method="post">
+    <input type="text" placeholder="email" name="email" />
+    <input type="text" placeholder="password" name="password" />
+    <button type="submit">signup</button>
+</form>
+{% endif %}
+{% if user and user.is_authenticated %}
+<form action="/logout" method="post">
+    <button type="submit">logout</button>
+</form>
+<h3>create alias</h3>
+<form action="/alias" method="post">
+    <input type="text" placeholder="alias name" name="name" />
+    <input type="text" placeholder="url" name="url" />
+    <button type="submit">create</button>
+</form>
+<br/>
+{% if user.aliases %}
+    {% for alias in user.aliases %}
+    <form action="/alias" method="put">
+        <input type="text" name="id" value="{{ alias.id }}" hidden />
+        <input type="text" name="name" value="{{ alias.name }}" />
+        <input type="text" name="url" value="{{ alias.url }}" />
+        <button type="submit">update</button>
+    </form>
+    <br/>
+    <form action="/alias" method="post">
+        <input type="text" name="id" value="{{ alias.id }}" hidden />
+        <button type="submit">delete</button>
+    </form>
+    <br/>
+    {% endfor %}
+{% endif %}
+{% endif %}
+{% endblock %}
