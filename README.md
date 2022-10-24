@@ -1,13 +1,6 @@
 # urlol
 by Jackson Taylor
 
-### todo
-
-- implement react renderer
-    - write login page
-    - write shortcut manager page
-- use decoded session for uid rather than passing in json body or query param
-
 ### run in development mode
 
 1. `docker stop CONTAINER_NAME` (if running)
