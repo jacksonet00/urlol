@@ -13,5 +13,8 @@ by Jackson Taylor
 
 5. `flask --app web --debug run`
 
+### functionality
+
 GET '/' -- Dashboard
+
 GET '/search?q={query}' -- Search
